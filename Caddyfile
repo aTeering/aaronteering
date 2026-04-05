@@ -1,0 +1,9 @@
+aaronteering.nl {
+    root * /srv
+    file_server
+}
+
+http://localhost {
+    root * /srv
+    file_server
+}

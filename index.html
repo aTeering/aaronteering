@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aaron Teering — Terminal Portfolio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'crt-bg':    '#0d0d0d',
+            'crt-text':  '#e2e8f0',
+            'crt-green': '#00ff9f',
+            'crt-dim':   '#4a5568',
+            'crt-error': '#fc8181',
+          },
+          fontFamily: {
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      background: #0d0d0d;
+      color: #e2e8f0;
+      font-family: 'JetBrains Mono', monospace;
+      min-height: 100vh;
+      margin: 0;
+      position: relative;
+    }
+
+    /* CRT scanlines overlay */
+    body::before {
+      content: '';
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 1px,
+        rgba(0,0,0,0.18) 1px,
+        rgba(0,0,0,0.18) 2px
+      );
+    }
+
+    /* Boot line fade-in */
+    @keyframes fadeInLine {
+      from { opacity: 0; transform: translateY(2px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .boot-line {
+      opacity: 0;
+      animation: fadeInLine 0.25s ease forwards;
+    }
+
+    /* Blinking block cursor */
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0; }
+    }
+    .cursor {
+      display: inline-block;
+      width: 0.6em;
+      height: 1.1em;
+      background: #00ff9f;
+      vertical-align: text-bottom;
+      animation: blink 1s step-start infinite;
+    }
+
+    /* Thin dark scrollbar */
+    ::-webkit-scrollbar       { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #4a5568; border-radius: 2px; }
+
+    /* REPL input wrapper — invisible input overlaid on the mirror text */
+    .repl-input-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+    }
+    #repl-mirror {
+      white-space: pre;
+      color: #e2e8f0;
+      pointer-events: none;
+    }
+    #repl-input {
+      position: absolute;
+      inset: 0;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: transparent;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: inherit;
+      caret-color: transparent;
+      width: 100%;
+    }
+
+    /* Skill grid */
+    /* Experience bullets — dot stays fixed, wrapped text indents under text */
+    .bullet-item {
+      display: flex;
+      gap: 0.75ch;
+    }
+    .bullet-item .dot {
+      flex-shrink: 0;
+      color: #4a5568;
+    }
+    .bullet-item .text {
+      flex: 1;
+    }
+
+    /* Skill grid — 2 fixed columns, rows snap into alignment */
+    .skill-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.6em 4ch;
+    }
+
+    /* Mobile */
+    @media (max-width: 640px) {
+      .prompt-full  { display: none !important; }
+      .prompt-short { display: inline !important; }
+      .skill-grid   { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body class="p-4 sm:p-8 pb-0 text-sm leading-relaxed">
+
+  <div id="terminal-output" class="max-w-3xl mx-auto">
+
+    <!-- 1. Boot sequence -->
+    <section id="boot" aria-label="Boot sequence" class="mb-6 text-crt-dim"></section>
+
+    <!-- 2. whoami -->
+    <section id="whoami-section" class="mb-6 opacity-0" aria-label="whoami output">
+      <p>
+        <span class="text-crt-dim prompt-full">visitor@aaron-teering:~$</span>
+        <span class="text-crt-dim prompt-short hidden">~$</span>
+        <span class="text-crt-text ml-2">whoami</span>
+      </p>
+      <p id="whoami-body" class="mt-1 text-crt-text">
+        Aaron Teering &mdash; full-stack software engineer for the web, with a weakness for well-crafted user interfaces.
+Based in Almelo (Ov, NLD), I enjoy building modern, scalable applications across the stack, with a strong focus on frontend.
+Always curious, always improving, and open to remote collaborations in anywhere the world, or orbit; you choose.
+      </p>
+    </section>
+
+    <!-- 3. ls skills/ -->
+    <section id="skills-section" class="mb-6 opacity-0" aria-label="skills listing">
+      <p>
+        <span class="text-crt-dim prompt-full">visitor@aaron-teering:~$</span>
+        <span class="text-crt-dim prompt-short hidden">~$</span>
+        <span class="text-crt-text ml-2">ls skills/</span>
+      </p>
+      <div id="skills-body" class="mt-1 skill-grid">
+        <div>
+          <span class="text-crt-green">frontend/</span><br>
+          <span class="text-crt-dim ml-2">React&nbsp; Next.js&nbsp; TypeScript&nbsp; GraphQL</span>
+        </div>
+        <div>
+          <span class="text-crt-green">backend/</span><br>
+          <span class="text-crt-dim ml-2">Laravel&nbsp; PHP&nbsp; REST APIs&nbsp; GraphQL</span>
+        </div>
+        <div>
+          <span class="text-crt-green">databases/</span><br>
+          <span class="text-crt-dim ml-2">PostgreSQL&nbsp; MySQL</span>
+        </div>
+        <div>
+          <span class="text-crt-green">ai-assisted development/</span><br>
+          <span class="text-crt-dim ml-2">Claude&nbsp; GitHub Copilot</span>
+        </div>
+        <div>
+          <span class="text-crt-green">tools & pipelines/</span><br>
+          <span class="text-crt-dim ml-2">Docker&nbsp; Git&nbsp; Jira&nbsp; CI/CD</span>
+        </div>
+        <div>
+          <span class="text-crt-green">workflow/</span><br>
+          <span class="text-crt-dim ml-2">Agile&nbsp; Scrum</span>
+        </div>
+        <div>
+          <span class="text-crt-green">additional/</span><br>
+          <span class="text-crt-dim ml-2">WordPress&nbsp; PrestaShop&nbsp; Magento</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. cat experience.md -->
+    <section id="experience-section" class="mb-6 opacity-0" aria-label="experience">
+      <p>
+        <span class="text-crt-dim prompt-full">visitor@aaron-teering:~$</span>
+        <span class="text-crt-dim prompt-short hidden">~$</span>
+        <span class="text-crt-text ml-2">cat experience.md</span>
+      </p>
+      <div id="experience-body" class="mt-1 space-y-5">
+
+        <div>
+          <div class="mb-1">
+            <span class="text-crt-green font-bold">Frontend Developer</span>
+            <span class="text-crt-text"> &middot; Tribe</span>
+            <span class="text-crt-dim"> &middot; Jan 2024 – Present &middot; 2 yr 4 mo</span>
+          </div>
+          <div class="space-y-0.5">
+            <div class="bullet-item"><span class="dot">&bull;</span><span class="text">Developed and maintained frontends for multiple web applications, improving user experience and performance.</span></div>
+            <div class="bullet-item"><span class="dot">&bull;</span><span class="text">Worked in Agile Scrum teams with 2-week sprints, consistently delivering features on time.</span></div>
+            <div class="bullet-item"><span class="dot">&bull;</span><span class="text">Mentored a cross-functional team of 4 developers as Scrum Master, facilitating collaboration and efficient workflows.</span></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="mb-1">
+            <span class="text-crt-green font-bold">Full-Stack Developer</span>
+            <span class="text-crt-text"> &middot; Tajriba</span>
+            <span class="text-crt-dim"> &middot; Aug 2020 – Dec 2023 &middot; 3 yr 5 mo</span>
+          </div>
+          <div class="space-y-0.5">
+            <div class="bullet-item"><span class="dot">&bull;</span><span class="text">Built and maintained full-stack web applications using Laravel, PHP, Vue, and SQL databases.</span></div>
+            <div class="bullet-item"><span class="dot">&bull;</span><span class="text">Developed and maintained PrestaShop webshops using Symfony, PHP, Smarty, and SQL databases.</span></div>
+            <div class="bullet-item"><span class="dot">&bull;</span><span class="text">Collaborated with designers to deliver responsive, user-friendly interfaces and seamless user experiences.</span></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="mb-1">
+            <span class="text-crt-green font-bold">Media Designer &amp; Web Designer</span>
+            <span class="text-crt-text"> &middot; unbrickable</span>
+            <span class="text-crt-dim"> &middot; Oct 2018 – May 2022 &middot; 3 yr 8 mo</span>
+          </div>
+          <div class="space-y-0.5">
+            <div class="bullet-item"><span class="dot">&bull;</span><span class="text">Designed and implemented visually appealing websites and media content for both internal use and clients.</span></div>
+            <div class="bullet-item"><span class="dot">&bull;</span><span class="text">Maintained and updated client websites, ensuring optimal user experience and consistent performance.</span></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="mb-1">
+            <span class="text-crt-green font-bold">Intern Web Design &amp; Development</span>
+            <span class="text-crt-text"> &middot; Slag bij Almelo</span>
+            <span class="text-crt-dim"> &middot; Sep 2019 – Jan 2020 &middot; 5 mo</span>
+          </div>
+          <div class="space-y-0.5">
+            <div class="bullet-item"><span class="dot">&bull;</span><span class="text">Assisted in designing and developing websites for local projects.</span></div>
+            <div class="bullet-item"><span class="dot">&bull;</span><span class="text">Gained hands-on experience in application development.</span></div>
+            <div class="bullet-item"><span class="dot">&bull;</span><span class="text">Contributed to creating responsive designs and improving website usability for end-users.</span></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 5. cat contact.txt -->
+    <section id="contact-section" class="mb-6 opacity-0" aria-label="contact information">
+      <p>
+        <span class="text-crt-dim prompt-full">visitor@aaron-teering:~$</span>
+        <span class="text-crt-dim prompt-short hidden">~$</span>
+        <span class="text-crt-text ml-2">cat contact.txt</span>
+      </p>
+      <div id="contact-body" class="mt-1">
+        <div><span class="text-crt-dim">email    :</span> <a href="mailto:aaron.teering@example.com" class="text-crt-green hover:underline">aaron.teering@example.com</a></div>
+        <div><span class="text-crt-dim">github   :</span> <a href="https://github.com/aTeering" target="_blank" rel="noopener" class="text-crt-green hover:underline">github.com/aTeering</a></div>
+        <div><span class="text-crt-dim">linkedin :</span> <a href="https://www.linkedin.com/in/aaron-teering-3ba002162/" target="_blank" rel="noopener" class="text-crt-green hover:underline">linkedin.com/in/aaron-teering</a></div>
+      </div>
+    </section>
+
+    <!-- REPL output history -->
+    <div id="repl-history" class="mb-2 space-y-3"></div>
+
+  </div>
+
+  <!-- Sticky REPL input -->
+  <div class="sticky bottom-0 bg-crt-bg border-t border-crt-dim border-opacity-20 pt-2 pb-4 max-w-3xl mx-auto">
+    <div class="flex items-center gap-2" role="form" aria-label="Terminal command input">
+      <span class="text-crt-dim prompt-full select-none" aria-hidden="true">visitor@aaron-teering:~$</span>
+      <span class="text-crt-dim prompt-short hidden select-none" aria-hidden="true">~$</span>
+      <div class="repl-input-wrap">
+        <span id="repl-mirror"></span><span class="cursor" aria-hidden="true"></span>
+        <input
+          id="repl-input"
+          type="text"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="none"
+          spellcheck="false"
+          aria-label="Enter a terminal command"
+          tabindex="0"
+        />
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    'use strict';
+
+    // Boot animation
+    var BOOT_LINES = [
+      { text: 'BIOS v2.1.4 \u2014 ARX Systems',   delay: 0    },
+      { text: '[  0.001s] Initializing kernel...', delay: 120  },
+      { text: '[  OK  ] Loading profile...',       delay: 280  },
+      { text: '[  OK  ] Mounting skills/',         delay: 440  },
+      { text: '[  OK  ] Reading experience.md',    delay: 580  },
+      { text: '[  OK  ] Indexing projects/',       delay: 720  },
+      { text: '[  OK  ] Starting ssh-agent',       delay: 860  },
+      { text: 'Welcome to AaronOS 1.0.0 LTS',      delay: 1050 },
+    ];
+
+    var bootEl   = document.getElementById('boot');
+    var maxDelay = 0;
+
+    BOOT_LINES.forEach(function (item) {
+      var div = document.createElement('div');
+      div.className = 'boot-line';
+      div.style.animationDelay = item.delay + 'ms';
+      div.textContent = item.text;
+      bootEl.appendChild(div);
+      if (item.delay > maxDelay) maxDelay = item.delay;
+    });
+
+    // Reveal sections after boot
+    var SECTION_IDS = ['whoami-section', 'skills-section', 'experience-section', 'contact-section'];
+    var revealBase  = maxDelay + 350;
+
+    SECTION_IDS.forEach(function (id, i) {
+      setTimeout(function () {
+        var el = document.getElementById(id);
+        if (el) { el.style.transition = 'opacity 0.4s ease'; el.style.opacity = '1'; }
+      }, revealBase + i * 180);
+    });
+
+    // REPL
+    var replInput   = document.getElementById('repl-input');
+    var replMirror  = document.getElementById('repl-mirror');
+    var replHistory = document.getElementById('repl-history');
+
+    replInput.addEventListener('input', syncMirror);
+    var cmdLog      = [];
+    var histIdx     = -1;
+    var histDraft   = '';
+
+    var PROMPT = '<span class="text-crt-dim select-none">visitor@aaron-teering:~$</span>';
+
+    function esc(str) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function scrollBottom() {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }
+
+    function appendOutput(cmdText, outputHTML) {
+      var wrap = document.createElement('div');
+      wrap.innerHTML =
+        '<div class="flex gap-2">' + PROMPT + '<span class="text-crt-text">' + esc(cmdText) + '</span></div>' +
+        '<div class="mt-0.5">' + outputHTML + '</div>';
+      replHistory.appendChild(wrap);
+      scrollBottom();
+    }
+
+    var HELP_HTML = [
+      '<span class="text-crt-green">available commands</span>',
+      '  <span class="text-crt-dim">whoami</span>               print bio',
+      '  <span class="text-crt-dim">ls</span> / <span class="text-crt-dim">ls skills/</span>     list skills',
+      '  <span class="text-crt-dim">cat experience.md</span>    print work history',
+      '  <span class="text-crt-dim">cat contact.txt</span>      print contact info',
+      '  <span class="text-crt-dim">open github</span>          open GitHub profile',
+      '  <span class="text-crt-dim">open linkedin</span>        open LinkedIn profile',
+      '  <span class="text-crt-dim">date</span>                 current date &amp; time',
+      '  <span class="text-crt-dim">echo &lt;text&gt;</span>          echo text',
+      '  <span class="text-crt-dim">clear</span>                clear output',
+      '  <span class="text-crt-dim">help</span>                 show this message',
+    ].join('\n');
+
+    function processCommand(raw) {
+      var cmd   = raw.trim();
+      if (!cmd) return;
+
+      cmdLog.unshift(cmd);
+      if (cmdLog.length > 20) cmdLog.pop();
+      histIdx   = -1;
+      histDraft = '';
+
+      var lower = cmd.toLowerCase();
+
+      if (lower === 'clear') {
+        replHistory.innerHTML = '';
+        return;
+      }
+      if (lower === 'help') {
+        appendOutput(cmd, '<pre class="text-crt-text whitespace-pre-wrap font-mono">' + HELP_HTML + '</pre>');
+        return;
+      }
+      if (lower === 'whoami') {
+        var wb = document.getElementById('whoami-body');
+        appendOutput(cmd, '<p class="text-crt-text">' + (wb ? wb.innerHTML : '') + '</p>');
+        return;
+      }
+      if (lower === 'ls' || lower === 'ls skills/') {
+        var sb = document.getElementById('skills-body');
+        appendOutput(cmd, sb ? sb.outerHTML : '');
+        return;
+      }
+      if (lower === 'cat experience.md') {
+        var eb = document.getElementById('experience-body');
+        appendOutput(cmd, eb ? eb.outerHTML : '');
+        return;
+      }
+      if (lower === 'cat contact.txt') {
+        var cb = document.getElementById('contact-body');
+        appendOutput(cmd, cb ? cb.outerHTML : '');
+        return;
+      }
+      if (lower === 'open github') {
+        window.open('https://github.com/aTeering', '_blank', 'noopener');
+        appendOutput(cmd, '<span class="text-crt-dim">Opening github.com/aTeering\u2026</span>');
+        return;
+      }
+      if (lower === 'open linkedin') {
+        window.open('https://www.linkedin.com/in/aaron-teering-3ba002162/', '_blank', 'noopener');
+        appendOutput(cmd, '<span class="text-crt-dim">Opening linkedin.com/in/aaron-teering-3ba002162\u2026</span>');
+        return;
+      }
+      if (lower === 'date') {
+        appendOutput(cmd, '<span class="text-crt-text">' + esc(new Date().toString()) + '</span>');
+        return;
+      }
+      if (lower.startsWith('echo ')) {
+        appendOutput(cmd, '<span class="text-crt-text">' + esc(cmd.slice(5)) + '</span>');
+        return;
+      }
+
+      var token = esc(cmd.split(/\s+/)[0]);
+      appendOutput(cmd, '<span class="text-crt-error">command not found: ' + token + '</span>');
+    }
+
+    function syncMirror() {
+      replMirror.textContent = replInput.value;
+    }
+
+    replInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        processCommand(replInput.value);
+        replInput.value = '';
+        syncMirror();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (histIdx === -1) histDraft = replInput.value;
+        if (histIdx < cmdLog.length - 1) {
+          histIdx++;
+          replInput.value = cmdLog[histIdx];
+          syncMirror();
+          setTimeout(function () {
+            replInput.setSelectionRange(replInput.value.length, replInput.value.length);
+          }, 0);
+        }
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (histIdx > 0) {
+          histIdx--;
+          replInput.value = cmdLog[histIdx];
+        } else if (histIdx === 0) {
+          histIdx = -1;
+          replInput.value = histDraft;
+        }
+        syncMirror();
+      }
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest('a')) replInput.focus();
+    });
+
+    replInput.focus();
+  })();
+  </script>
+</body>
+</html>
