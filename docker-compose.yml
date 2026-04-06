@@ -7,6 +7,13 @@ services:
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - ./index.html:/srv/index.html
+      - ./favicon.ico:/srv/favicon.ico
+      - ./favicon-16x16.png:/srv/favicon-16x16.png
+      - ./favicon-32x32.png:/srv/favicon-32x32.png
+      - ./apple-touch-icon.png:/srv/apple-touch-icon.png
+      - ./site.webmanifest:/srv/site.webmanifest
+      - ./android-chrome-192x192.png:/srv/android-chrome-192x192.png
+      - ./android-chrome-512x512.png:/srv/android-chrome-512x512.png
       - caddy_data:/data
       - caddy_config:/config
     restart: unless-stopped
